@@ -1,39 +1,27 @@
 using System.ComponentModel.DataAnnotations;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
-public class CreateCustomerRequest
-{
-    [Required, StringLength(100)] public string Name { get; set; } = "";
-    [Required, StringLength(100)] public string Email { get; set; } = "";
-}
-
-public record CustomerResponse(int id, string Name, string Email);
+public record CustomerResponse(int Id, string Name, string Email);
 
 
 [ApiController]
+[Authorize]
 [Route("customers")]
-public class CustomerController : ControllerBase
+public class CustomersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public CustomerController(AppDbContext db) => _db = db;
+    public CustomersController(AppDbContext db) => _db = db;
 
     [HttpGet("{id}")]
     public async Task<ActionResult<CustomerResponse>> GetOne(int id)
     {
-        var c = await _db.Customers.FindAsync(id);
+        var isAdmin = User.IsInRole("Admin");
+        int.TryParse(User.FindFirstValue("customerId"), out var customerId);
+        var c = await _db.Customers.FirstOrDefaultAsync(c => c.Id == id && ( isAdmin || c.Id == customerId));
         if (c is null) return NotFound();
         return new CustomerResponse(c.Id, c.Name, c.Email);
     }
-
-    [HttpPost]
-    public async Task<ActionResult<CustomerResponse>> Create(CreateCustomerRequest request)
-    {
-        var c = new Customer { Name = request.Name, Email = request.Email};
-        _db.Customers.Add(c);
-        await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetOne), new { id = c.Id}, new CustomerResponse(c.Id, c.Name, c.Email));
-    }
 }
-
