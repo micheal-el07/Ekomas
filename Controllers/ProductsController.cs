@@ -10,6 +10,8 @@ public class CreateProductRequest
 
     [Range(0.01, 100000)]
     public decimal Price { get; set; }
+    [Range(1, 100000)]
+    public int Stock { get; set; }
 }
 
 public class UpdateProductRequest
@@ -19,9 +21,11 @@ public class UpdateProductRequest
 
     [Range(0.01, 100000)]
     public decimal Price { get; set; }
+    [Range(1, 100000)]
+    public int Stock { get; set; }
 }
 
-public record ProductResponse(int Id, string Name, decimal Price);
+public record ProductResponse(int Id, string Name, decimal Price, int Stock);
 
 [ApiController]
 [Route("products")]
@@ -38,7 +42,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<List<ProductResponse>>> GetAll()
     {
         return await _db.Products
-        .Select(p => new ProductResponse(p.Id, p.Name, p.Price))
+        .Select(p => new ProductResponse(p.Id, p.Name, p.Price, p.Stock))
         .ToListAsync();
     }
 
@@ -47,7 +51,7 @@ public class ProductsController : ControllerBase
     {
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
         if (product is null) return NotFound();
-        return new ProductResponse(product.Id, product.Name, product.Price);
+        return new ProductResponse(product.Id, product.Name, product.Price, product.Stock);
     }
 
     [Authorize(Roles = "Admin")]
@@ -57,7 +61,7 @@ public class ProductsController : ControllerBase
         var product = new Product { Name = request.Name, Price = request.Price };
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
-        ProductResponse productResponse = new ProductResponse(product.Id, product.Name, product.Price);
+        ProductResponse productResponse = new ProductResponse(product.Id, product.Name, product.Price, product.Stock);
         return CreatedAtAction(nameof(GetOne), new { id = product.Id }, productResponse);
     }
 
@@ -70,6 +74,7 @@ public class ProductsController : ControllerBase
 
         product.Name = request.Name;
         product.Price = request.Price;
+        product.Stock = request.Stock;
         await _db.SaveChangesAsync();
         return NoContent();
     }
