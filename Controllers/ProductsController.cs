@@ -58,7 +58,7 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProductResponse>> Create(CreateProductRequest request)
     {
-        var product = new Product { Name = request.Name, Price = request.Price };
+        var product = new Product { Name = request.Name, Price = request.Price, Stock = request.Stock };
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
         ProductResponse productResponse = new ProductResponse(product.Id, product.Name, product.Price, product.Stock);
