@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices;
 
 public class CreateProductRequest
 {
@@ -27,6 +28,14 @@ public class UpdateProductRequest
 
 public record ProductResponse(int Id, string Name, decimal Price, int Stock);
 
+public class ProductQueryResponse
+{
+    public List<ProductResponse> Items { get; set; } = new();
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+}
+
 [ApiController]
 [Route("products")]
 public class ProductsController : ControllerBase
@@ -39,11 +48,47 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ProductResponse>>> GetAll()
+    public async Task<ActionResult<ProductQueryResponse>> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] decimal? minPrice = null)
     {
-        return await _db.Products
-        .Select(p => new ProductResponse(p.Id, p.Name, p.Price, p.Stock))
-        .ToListAsync();
+        // if (Page <= 0 || Limit <= 0 || Limit >= 200)
+        //     return BadRequest("Invalid pagination");
+
+        if (page <= 0) page = 1;
+        if (pageSize <= 0) pageSize = 10;
+        if (pageSize >100) pageSize = 100;
+
+        var query = _db.Products.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(p => p.Name.Contains(search));
+        }
+
+        if (minPrice.HasValue)
+        {
+            query = query.Where(p => p.Price >= minPrice.Value);
+        }
+
+        var offset = (page - 1) * pageSize;
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderBy(p => p.Id)
+            .Skip(offset)
+            .Take(pageSize)
+            .Select(p => new ProductResponse(
+                p.Id,
+                p.Name,
+                p.Price,
+                p.Stock
+            ))
+            .ToListAsync();
+
+        return new ProductQueryResponse { Items = items, Page = page, PageSize = pageSize, TotalCount = totalCount};
     }
 
     [HttpGet("{id}")]
