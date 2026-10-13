@@ -16,7 +16,8 @@ public class GlobalExceptionHandler : IExceptionHandler
     {
         _logger.LogError(exception, "Unhandled exception on {Path}", context.Request.Path);
 
-        if (exception is DbUpdateException { InnerException: Microsoft.Data.Sqlite.SqliteException { SqliteErrorCode : 19 }})
+        // SQL Server: 2627/2601 = unique violation, 547 = foreign key conflict
+        if (exception is DbUpdateException { InnerException: Microsoft.Data.SqlClient.SqlException { Number: 2627 or 2601 or 547 } })
         {
             context.Response.StatusCode = StatusCodes.Status409Conflict;
             await context.Response.WriteAsJsonAsync(new ProblemDetails
@@ -24,6 +25,7 @@ public class GlobalExceptionHandler : IExceptionHandler
                 Status = 409,
                 Title = "The request conflicts with existing data."
             }, ct);
+            return true;
         }
 
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
