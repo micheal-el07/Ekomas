@@ -26,7 +26,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite("Data Source=ekomas.db"));
+// builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite("Data Source=ekomas.db"));
+builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=ekomas.db"));
 
 var app = builder.Build();
 
@@ -48,3 +49,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }
