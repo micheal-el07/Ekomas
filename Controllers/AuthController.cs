@@ -15,11 +15,20 @@ public class RegisterRequest
     public string Name { get; set; } = "";
 }
 
+public class RegisterResponse
+{
+    public int Id { get; set; }
+    public string? Name { get; set; } = null;
+    public string Email { get; set; } = "";
+}
+
 public class LoginRequest
 {
     [Required] public string Email { get; set; } = "";
     [Required] public string Password { get; set; } = "";
 }
+
+public record LoginResponse(string Token);
 
 [ApiController]
 [Route("auth")]
@@ -54,7 +63,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request)
+    public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
 
@@ -81,7 +90,9 @@ public class AuthController : ControllerBase
         };
 
         var token = new JsonWebTokenHandler().CreateToken(descriptor);
-        return Ok(new { token });
+        // return Ok(new { token });
+        return Ok( new LoginResponse(Token: token));
+
     }
 
     [Authorize]
