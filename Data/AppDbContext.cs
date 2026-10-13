@@ -21,6 +21,10 @@ public class AppDbContext : DbContext
             .HasOne(o => o.Customer).WithMany(c => c.Orders)
             .HasForeignKey(o => o.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);
+        
+        b.Entity<Product>().Property(p => p.Price).HasPrecision(18, 2);
+        b.Entity<Product>().Property(p => p.Cost).HasPrecision(18, 2);
+        b.Entity<OrderItem>().Property(i => i.UnitPrice).HasPrecision(18, 2);
     }
 
 }
