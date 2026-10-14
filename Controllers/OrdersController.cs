@@ -35,10 +35,12 @@ public class OrdersController : ControllerBase
 {
     private readonly IOrderService _orders;
     private readonly AppDbContext _db;
-    public OrdersController(AppDbContext db, IOrderService orders)
+    private readonly IPaymentService _payments;
+    public OrdersController(AppDbContext db, IOrderService orders, IPaymentService payment)
     {
         _db = db;
         _orders = orders;
+        _payments = payment;
     }
 
     [HttpGet("{id}")]
@@ -79,4 +81,19 @@ public class OrdersController : ControllerBase
         if (error is not null) return BadRequest(error);
         return CreatedAtAction(nameof(GetOne), new { id = order!.Id}, new { order.Id });
     }
+
+    [HttpPost("{id}/pay")]
+    public async Task<ActionResult> Pay(int id, CancellationToken ct)
+    {
+        var isAdmin = User.IsInRole("Admin");
+        int.TryParse(User.FindFirstValue("customerId"), out var customerId);
+
+        var (url, error) = await _payments.StartPaymentAsync(id, customerId, isAdmin, ct);
+
+        if (error == "Order not found") return NotFound();
+        if (error is not null) return Conflict(error);
+        return Ok(new { paymentUrl = url });
+    }
 }
+
+

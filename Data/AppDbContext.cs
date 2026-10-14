@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
         b.Entity<Product>().Property(p => p.Price).HasPrecision(18, 2);
         b.Entity<Product>().Property(p => p.Cost).HasPrecision(18, 2);
         b.Entity<OrderItem>().Property(i => i.UnitPrice).HasPrecision(18, 2);
+        b.Entity<Order>().Property(o => o.PaymentStatus).HasConversion<string>();
     }
 
 }

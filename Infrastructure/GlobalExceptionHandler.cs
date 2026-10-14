@@ -28,6 +28,27 @@ public class GlobalExceptionHandler : IExceptionHandler
             return true;
         }
 
+        if (exception is PaymentGatewayException)
+        {
+            context.Response.StatusCode = StatusCodes.Status502BadGateway;
+            await context.Response.WriteAsJsonAsync(new ProblemDetails
+            {
+                Status = 502,
+                Title = "Payment provider error"
+            }, ct);
+        }
+
+        if (exception is TaskCanceledException or TimeoutException)
+        {
+            // if (context.ResponseAborted.IsCancellationRequested)
+            context.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
+            await context.Response.WriteAsJsonAsync(new ProblemDetails
+            {
+                Status = 504,
+                Title = "Payment provider error"
+            }, ct);
+        }
+
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await context.Response.WriteAsJsonAsync(new ProblemDetails
         {
