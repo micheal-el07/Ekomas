@@ -5,4 +5,7 @@ public class Product
     public decimal Price { get; set; }
     public decimal Cost { get; set; }
     public int Stock { get; set; }
+    public string? ImageFileName { get; set; }
+    public string? ImageContentType { get; set; }
+
 }

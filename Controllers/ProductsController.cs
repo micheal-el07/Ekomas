@@ -42,6 +42,13 @@ public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
 
+    private static readonly Dictionary<string, string> AllowedImages = new()
+    {
+        ["image/jpeg"] = ".jpg",
+        ["image/png"] = ".png",
+        ["image/webp"] = ".webp"
+    };
+
     public ProductsController(AppDbContext db)
     {
         _db = db;
@@ -122,6 +129,49 @@ public class ProductsController : ControllerBase
         product.Stock = request.Stock;
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id}/image")]
+    [RequestSizeLimit(2_000_000)]
+    public async Task<IActionResult> UploadImage(int id, IFormFile file, [FromServices] IFileStorage storage, CancellationToken ct)
+    {
+        var product = await _db.Products.FindAsync(new object[] { id }, ct);
+        if (product is null) return NotFound();
+
+        if (file.Length == 0 || file.Length > 2_000_000)
+            return BadRequest("File must be between 1 byte and 2 MB.");
+
+        await using var stream = file.OpenReadStream();
+        var detected = await ImageSniffer.DetectAsync(stream, ct);
+
+        if (detected is null || !AllowedImages.TryGetValue(detected, out var extension))
+            return BadRequest("Only JPEG, PNG or WEBP images are allowed.");
+
+        stream.Seek(0, SeekOrigin.Begin);
+        var storedName = await storage.SaveAsync(stream, extension, ct);
+
+        if (product.ImageFileName is not null) storage.Delete(product.ImageFileName);
+
+        product.ImageFileName = storedName;
+        product.ImageContentType = detected;
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpGet("{id}/image")]
+    public async Task<IActionResult> GetImage(
+        int id, [FromServices] IFileStorage storage, CancellationToken ct)
+    {
+        var product = await _db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
+        if (product?.ImageFileName is null) return NotFound();
+
+        var path = storage.GetPhysicalPath(product.ImageFileName);
+        if (!System.IO.File.Exists(path)) return NotFound();
+
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return PhysicalFile(path, product.ImageContentType ?? "application/octet-stream",
+            enableRangeProcessing: true);   // lets clients resume or seek
     }
 
     [Authorize(Roles = "Admin")]
