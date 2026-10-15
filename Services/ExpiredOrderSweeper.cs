@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 
 public class ExpiredOrderSweeper : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan MaxAge = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan MaxAge = TimeSpan.FromMinutes(35);
 
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<ExpiredOrderSweeper> _logger;
