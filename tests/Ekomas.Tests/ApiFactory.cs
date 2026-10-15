@@ -14,7 +14,7 @@ public class ApiFactory : WebApplicationFactory<Program>
     {
         // Server credentials only. The database name is made unique below.
         var server = Environment.GetEnvironmentVariable("EKOMAS_TEST_SQL")
-            ?? "Server=localhost,1433;User Id=sa;Password=Ekomas_Passw0rd!;TrustServerCertificate=True";
+            ?? "Server=localhost,1433;User Id=sa;Password=...;TrustServerCertificate=True";
 
         _connectionString = new SqlConnectionStringBuilder(server)
         {
