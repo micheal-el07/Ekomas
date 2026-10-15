@@ -33,12 +33,6 @@ public class WebhooksController : ControllerBase
         CancellationToken ct
     )
     {
-        // using var reader = new StreamReader(Request.Body);
-        // var body = await reader.ReadToEndAsync();
-
-        // _logger.LogDebug("Webhook body : {Body}", body);
-
-        // return Ok();
         var expected = _config["Xendit:CallbackToken"] ?? "";
 
         var valid = token is not null && CryptographicOperations.FixedTimeEquals(
