@@ -89,6 +89,44 @@ public class PaymentService : IPaymentService
         {
             var totalAmount = order.Items.Sum(i => i.UnitPrice * i.Quantity);
 
+            if (order.PaymentStatus == PaymentStatus.Expired)
+            {
+                await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+                var claimed = await _db.Orders
+                    .Where(o => o.Id == order.Id && o.PaymentStatus == PaymentStatus.Expired)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(o => o.PaymentStatus, PaymentStatus.Paid)
+                        .SetProperty(o => o.PaidAt, payload.PaidAt ?? DateTime.UtcNow)
+                        .SetProperty(o => o.PaymentReference, payload.Id), ct
+                        );
+
+                if (claimed == 0) return;
+
+                foreach (var item in order.Items)
+                {
+                    var rows = await _db.Products
+                        .Where(p => p.Id == item.ProductId && p.Stock >= item.Quantity)
+                        .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => p.Stock - item.Quantity), ct);
+
+                    if (rows == 0)
+                    {
+                        await tx.RollbackAsync(ct);
+
+                        await _db.Orders
+                            .Where(o => o.Id == order.Id && o.PaymentStatus == PaymentStatus.Expired)
+                            .ExecuteUpdateAsync(s => s.SetProperty(o => o.PaymentStatus, PaymentStatus.RefundRequired), ct);
+
+                        _logger.LogError("Order {OrderId} paid after expiry and stock is gone.Refund needed.", order.Id);
+                        return;
+                    }
+                }
+
+                await tx.CommitAsync(ct);
+                _logger.LogWarning("Order {OrderId} paid after expiry; stock re-reserved.", order.Id);
+                return;
+            }
+
             if (payload.Amount != totalAmount)
             {
                 _logger.LogWarning("Payment amount and order amount does not match.");

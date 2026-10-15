@@ -35,7 +35,8 @@ public class XenditGateway : IPaymentGateway
             amount = r.Amount,
             description = r.Description,
             payer_email = r.PayerEmail,
-            currency = _config["Xendit:Currency"]
+            currency = _config["Xendit:Currency"],
+            invoice_duration = 1800
         };
 
         using var response = await _http.PostAsJsonAsync("v2/invoices", body, ct);
