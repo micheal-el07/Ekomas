@@ -1,4 +1,4 @@
-public enum PaymentStatus { Unpaid, Pending, Paid, Expired }
+public enum PaymentStatus { Unpaid, Pending, Paid, Expired, RefundRequired }
 public class Order
 {
     public int Id { get; set; }
